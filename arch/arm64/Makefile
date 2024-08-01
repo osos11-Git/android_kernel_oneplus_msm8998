@@ -95,19 +95,33 @@ KBUILD_AFLAGS	+= $(lseinstr) $(vdso32)
 
 ifeq ($(CONFIG_CPU_BIG_ENDIAN), y)
 KBUILD_CPPFLAGS	+= -mbig-endian
+CHECKFLAGS	+= -D__AARCH64EB__
 AS		+= -EB
 # Prefer the baremetal ELF build target, but not all toolchains include
 LDFLAGS		+= -EB $(call ld-option, -maarch64elfb, -maarch64linuxb)
 UTS_MACHINE	:= aarch64_be
 else
 KBUILD_CPPFLAGS	+= -mlittle-endian
+CHECKFLAGS	+= -D__AARCH64EL__
 AS		+= -EL
 # Same as above, prefer ELF but fall back to linux target if needed.
 LDFLAGS		+= -EL $(call ld-option, -maarch64elf, -maarch64linux)
 UTS_MACHINE	:= aarch64
 endif
 
-CHECKFLAGS	+= -D__aarch64__
+# msm8998 optimizations
+ifeq ($(cc-name),clang)
+arch-$(CONFIG_ARCH_MSM8998)	:= $(call cc-option,-march=armv8-a+crc+crypto -mcpu=cortex-a53+crc+crypto)
+tune-$(CONFIG_ARCH_MSM8998)	:= -mtune=cortex-a53
+else
+arch-$(CONFIG_ARCH_MSM8998)	:= $(call cc-option,-march=armv8-a+crc+crypto -mcpu=cortex-a73.cortex-a53+crc+crypto)
+tune-$(CONFIG_ARCH_MSM8998)	:= -mtune=cortex-a73.cortex-a53
+endif
+
+KBUILD_CFLAGS	+= $(arch-y) $(tune-y)
+KBUILD_AFLAGS	+= $(arch-y) $(tune-y)
+
+CHECKFLAGS	+= -D__aarch64__ -m64
 
 ifeq ($(CONFIG_ARM64_MODULE_CMODEL_LARGE), y)
 KBUILD_CFLAGS_MODULE	+= -mcmodel=large
